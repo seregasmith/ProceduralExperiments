@@ -5,396 +5,6 @@ using UnityEngine;
 using Random = UnityEngine.Random;
 
 
-public class GridVector
-{
-    public static GridVector plusX = new GridVector(1, 0);
-    public static GridVector minusX = new GridVector(-1, 0);
-    public static GridVector plusY = new GridVector(0, 1);
-    public static GridVector minusY = new GridVector(0, -1);
-    public static GridVector zero = new GridVector(0, 0);
-
-    public int x;
-    public int y;
-
-    public GridVector minimized
-    {
-        get
-        {
-            var m = new GridVector(this);
-            if (m.x > 0) m.x = 1;
-            if (m.x < 0) m.x = -1;
-            if (m.y > 0) m.y = 1;
-            if (m.y < 0) m.y = -1;
-            return m;
-        }
-    }
-
-    public GridVector(int x, int y)
-    {
-        this.x = x;
-        this.y = y;
-    }
-
-    public GridVector(GridVector point)
-    {
-        x = point.x;
-        y = point.y;
-    }
-
-    public static GridVector operator +(GridVector a, GridVector b)
-    {
-        return new GridVector(a.x + b.x, a.y + b.y);
-    }
-
-    public static GridVector operator -(GridVector a, GridVector b)
-    {
-        return new GridVector(a.x - b.x, a.y - b.y);
-    }
-
-    public static GridVector operator /(GridVector a, int b)
-    {
-        return new GridVector(a.x / b, a.y / b);
-    }
-
-    public static GridVector operator *(GridVector a, int b)
-    {
-        return new GridVector(a.x * b, a.y * b);
-    }
-
-    public static bool operator ==(GridVector a, GridVector b)
-    {
-        if (System.Object.ReferenceEquals(a, b))
-        {
-            return true;
-        }
-        if ((object)a == null || (object)b == null)
-        {
-            return false;
-        }
-        return a.x == b.x && a.y == b.y;
-    }
-
-    public static bool operator !=(GridVector a, GridVector b)
-    {
-        return !(a == b);
-    }
-
-    public override string ToString()
-    {
-        return "(" + x + ", " + y + ")";
-    }
-}
-
-public class RoomWall
-{
-    public bool canGrow;
-    public GridVector start;
-    public GridVector end;
-
-    public GridVector outwards
-    {
-        get { return new GridVector(-direction.y, direction.x); }
-    }
-
-    public GridVector direction
-    {
-        get { return end - start; }
-    }
-
-    public int length
-    {
-        get { return Math.Abs(end.x - start.x) + Math.Abs(end.y - start.y); }
-    }
-
-    public RoomWall()
-    {
-    }
-
-    public RoomWall(GridVector start, GridVector end)
-    {
-        this.start = start;
-        this.end = end;
-    }
-
-    public RoomWall(RoomWall wall)
-    {
-        start = wall.start;
-        end = wall.end;
-    }
-
-    public static int CompareByLength(RoomWall a, RoomWall b)
-    {
-        if (a.length > b.length) return 1;
-        if (a.length == b.length) return 0;
-        return -1;
-    }
-
-    public static RoomWall operator +(RoomWall a, GridVector b)
-    {
-        var result = new RoomWall(a);
-        result.start += b;
-        result.end += b;
-        return result;
-    }
-
-    public static RoomWall operator -(RoomWall a, GridVector b)
-    {
-        var result = new RoomWall(a);
-        result.start -= b;
-        result.end -= b;
-        return result;
-    }
-}
-
-
-public class Room
-{
-    // Примыкающие стены и углы считаются по часовой стрелке, если смотреть из центра комнаты
-    public List<GridVector> corners;
-    public Color color;
-    public bool canSpawn = false;
-    public List<RoomWall> walls
-    {
-        get
-        {
-            var roomWalls = new List<RoomWall>();
-            for (var i = 0; i < corners.Count; i++)
-            {
-                roomWalls.Add(new RoomWall(corners[i], i == corners.Count - 1 ? corners[0] : corners[i + 1]));
-            }
-            return roomWalls;
-        }
-    }
-    public int perimeter
-    {
-        get
-        {
-            var p = 0;
-            foreach (var wall in walls)
-            {
-                p += wall.length;
-            }
-            return p;
-        }
-    }
-
-    public Room(Color color, List<GridVector> corners)
-    {
-        this.color = color;
-        this.corners = corners;
-        SortCorners();
-    }
-
-    public GridVector SortCorners()
-    {
-        // Ищем границы комнаты
-        var minX = corners[0].x;
-        var maxX = corners[0].x;
-        var minY = corners[0].y;
-        var maxY = corners[0].y;
-        foreach (var corner in corners)
-        {
-            if (corner.x < minX) minX = corner.x;
-            if (corner.x > maxX) maxX = corner.x;
-            if (corner.y < minY) minY = corner.y;
-            if (corner.y > maxY) maxY = corner.y;
-        }
-
-        // Сортируем углы комнаты
-        var oldC = new List<GridVector>(corners);
-        var newC = new List<GridVector>();
-        bool parallelX = false;
-        while (oldC.Count > 1)
-        {
-            // Ищем первый угол
-            if (newC.Count == 0)
-            {
-                if (ScanUp(ref oldC, ref newC, minX, minY, maxY)) continue;
-                if (ScanRight(ref oldC, ref newC, minX, minY, maxX)) continue;
-                if (ScanDown(ref oldC, ref newC, minX, minY, minY)) continue;
-                if (!ScanLeft(ref oldC, ref newC, minX, minY, minX))
-                {
-                    Debug.Log("Error on start");
-                    return null;
-                }
-            }
-            // Ищем остальные углы
-            else
-            {
-                var last = newC[newC.Count - 1];
-                if (parallelX)
-                {
-                    if (ScanRight(ref oldC, ref newC, last.x, last.y, maxX))
-                    {
-                        parallelX = false;
-                        continue;
-                    }
-                    if (ScanLeft(ref oldC, ref newC, last.x, last.y, minX))
-                    {
-                        parallelX = false;
-                        continue;
-                    }
-                }
-                else
-                {
-                    if (ScanUp(ref oldC, ref newC, last.x, last.y, maxY))
-                    {
-                        parallelX = true;
-                        continue;
-                    }
-                    if (ScanDown(ref oldC, ref newC, last.x, last.y, minY))
-                    {
-                        parallelX = true;
-                        continue;
-                    }
-                }
-                Debug.Log("Error -------------------------------------------------");
-                Debug.Log("Corners: " + corners.Count);
-                Debug.Log("OldC: " + oldC.Count);
-                Debug.Log("NewC: " + newC.Count);
-                Debug.Log(last);
-                color = Color.red;
-                return last;
-            }
-        }
-        // Добавляем последний оставшийся угол
-        newC.Add(oldC[0]);
-        corners = newC;
-        return null;
-    }
-
-    bool ScanLeft(ref List<GridVector> oldC, ref List<GridVector> newC, int startX, int startY, int minX)
-    {
-        for (var x = startX; x >= minX; x--)
-        {
-            var index = oldC.FindIndex(gv => gv.x == x && gv.y == startY);
-            if (index > -1)
-            {
-                newC.Add(oldC[index]);
-                oldC.RemoveAt(index);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool ScanUp(ref List<GridVector> oldC, ref List<GridVector> newC, int startX, int startY, int maxY)
-    {
-        for (var y = startY; y <= maxY; y++)
-        {
-            var index = oldC.FindIndex(gv => gv.x == startX && gv.y == y);
-            if (index > -1)
-            {
-                newC.Add(oldC[index]);
-                oldC.RemoveAt(index);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool ScanRight(ref List<GridVector> oldC, ref List<GridVector> newC, int startX, int startY, int maxX)
-    {
-        for (var x = startX; x <= maxX; x++)
-        {
-            var index = oldC.FindIndex(gv => gv.x == x && gv.y == startY);
-            if (index > -1)
-            {
-                newC.Add(oldC[index]);
-                oldC.RemoveAt(index);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool ScanDown(ref List<GridVector> oldC, ref List<GridVector> newC, int startX, int startY, int minY)
-    {
-        for (var y = startY; y >= minY; y--)
-        {
-            var index = oldC.FindIndex(gv => gv.x == startX && gv.y == y);
-            if (index > -1)
-            {
-                newC.Add(oldC[index]);
-                oldC.RemoveAt(index);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public void GrowWall(RoomWall wall)
-    {
-        for (var i = 0; i < corners.Count; i++)
-        {
-            if (i < corners.Count - 1)
-            {
-                if (corners[i] == wall.start && corners[i + 1] == wall.end)
-                {
-                    corners[i] += wall.outwards.minimized;
-                    corners[i + 1] += wall.outwards.minimized;
-                    return;
-                }
-                if (corners[i] == wall.end && corners[i + 1] == wall.start)
-                {
-                    corners[i] -= wall.outwards.minimized;
-                    corners[i + 1] -= wall.outwards.minimized;
-                    return;
-                }
-            }
-            else
-            {
-                if (corners[i] == wall.start && corners[0] == wall.end)
-                {
-                    corners[i] += wall.outwards.minimized;
-                    corners[0] += wall.outwards.minimized;
-                    return;
-                }
-                if (corners[i] == wall.end && corners[0] == wall.start)
-                {
-                    corners[i] -= wall.outwards.minimized;
-                    corners[0] -= wall.outwards.minimized;
-                    return;
-                }
-            }
-        }
-    }
-
-    public void AddWall(RoomWall wall)
-    {
-        for (var i = 0; i < corners.Count; i++)
-        {
-            if (corners[i] == wall.start)
-            {
-                corners.Add(wall.end);
-                corners.Add(wall.end);
-                SortCorners();
-                return;
-            }
-            if (corners[i] == wall.end)
-            {
-                corners.Add(wall.start);
-                corners.Add(wall.start);
-                SortCorners();
-                return;
-            }
-        }
-        corners.Add(wall.start);
-        corners.Add(wall.start);
-        corners.Add(wall.end);
-        corners.Add(wall.end);
-        SortCorners();
-    }
-
-    public static int CompareByPerimeter(Room a, Room b)
-    {
-        if (a.perimeter > b.perimeter) return 1;
-        if (a.perimeter == b.perimeter) return 0;
-        return -1;
-    }
-}
-
-
 public class FloorPlanGenerator : MonoBehaviour
 {
     public Texture2D testWalls;
@@ -402,7 +12,6 @@ public class FloorPlanGenerator : MonoBehaviour
     public Renderer scanRenderer;
     public bool growCorners;
     public bool growCenters;
-    public bool capture = true;
     public bool paused;
 
     private Texture2D texture;
@@ -416,7 +25,6 @@ public class FloorPlanGenerator : MonoBehaviour
     private int growableCorners;
     private int bigCorner;
     private int bigCenter;
-    private int screenshotCount;
     private Room bigCornerRoom;
     private Room bigCenterRoom;
     private List<RoomWall> growableWalls;
@@ -440,12 +48,6 @@ public class FloorPlanGenerator : MonoBehaviour
         ResetDebugTexture();
         RandomRooms();
         //InvokeRepeating("TakeScreenshot", 0, 0.1f);
-    }
-
-    void TakeScreenshot()
-    {
-        Application.CaptureScreenshot(screenshotCount + ".png");
-        screenshotCount++;
     }
 
     void Update()
@@ -777,6 +379,7 @@ public class FloorPlanGenerator : MonoBehaviour
         BresenhamLine(wall.start, wall.end, color, tex);
     }
 
+
     RoomWall LongWall(List<RoomWall> walls)
     {
         walls.Sort(RoomWall.CompareByLength);
@@ -797,7 +400,6 @@ public class FloorPlanGenerator : MonoBehaviour
         rooms.Clear();
         growCorners = false;
         growCenters = false;
-        screenshotCount = 0;
         texture.SetPixels(testWalls.GetPixels(0, 0, testWalls.width, testWalls.height));
         texture.Apply();
         GetComponent<Renderer>().material.mainTexture = texture;
@@ -823,7 +425,6 @@ public class FloorPlanGenerator : MonoBehaviour
         rooms.Clear();
         growCorners = false;
         growCenters = false;
-        screenshotCount = 0;
         texture.SetPixels(transparent.GetPixels(0, 0, transparent.width, transparent.height));
         var r = new List<GridVector>();
         for (var i = 0; i < 3; i++)
