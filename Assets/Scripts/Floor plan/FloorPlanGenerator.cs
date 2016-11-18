@@ -570,7 +570,7 @@ public class FloorPlanGenerator : MonoBehaviour
             }
         }
         
-        renderer.material.mainTexture = texture;
+        GetComponent<Renderer>().material.mainTexture = texture;
         scanRenderer.material.mainTexture = scanTexture;
     }
 
@@ -800,7 +800,7 @@ public class FloorPlanGenerator : MonoBehaviour
         screenshotCount = 0;
         texture.SetPixels(testWalls.GetPixels(0, 0, testWalls.width, testWalls.height));
         texture.Apply();
-        renderer.material.mainTexture = texture;
+        GetComponent<Renderer>().material.mainTexture = texture;
     }
     void ResetDebugTexture()
     {
@@ -852,7 +852,7 @@ public class FloorPlanGenerator : MonoBehaviour
             }
         }
         texture.Apply();
-        renderer.material.mainTexture = texture;
+        GetComponent<Renderer>().material.mainTexture = texture;
     }
 
     void RandomRooms()

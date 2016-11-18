@@ -1,32 +1,12 @@
-# This repository is obsolete. Latest version can be found in  [ProceduralToolkit](https://github.com/Syomus/ProceduralToolkit).
+﻿# This repository is obsolete. Latest version can be found in  [ProceduralToolkit](https://github.com/Syomus/ProceduralToolkit).
 
 # Этот репозиторий устарел. Последнюю версию смотрите в [ProceduralToolkit](https://github.com/Syomus/ProceduralToolkit).
+
+# Fork репозитория [ProceduralExpiriments]http://basmanovdaniil.github.io/ProceduralExperiments/.
 
 ProceduralExperiments
 =====================
 Эксперименты с процедурной генерацией на Unity3d
-
-Khrushchyovka.cs
-=========
-![](http://habrastorage.org/storage3/89c/fff/2e1/89cfff2e16ab381631314d16c708c72b.gif)![](http://habrastorage.org/storage3/fde/d2f/3ed/fded2f3ed9e9cfcf44189cc5d904dfb2.gif)
-
-http://basmanovdaniil.github.io/ProceduralExperiments/Khrushchyovka.html
-
-Процедурный генератор хрущёвок
-
-Левая кнопка мыши — новое здание
-
-Esc — Выход
-
-PGMesh.cs
-=========
-![](http://habrastorage.org/storage3/7f0/31f/a43/7f031fa43c1e01f86e8cff846d7b374c.gif)
-
-http://basmanovdaniil.github.io/ProceduralExperiments/Web%20PGMesh.html
-
-Процедурный генератор моделей
-
-Esc — Выход
 
 FloorPlanGenerator.cs
 =====================
